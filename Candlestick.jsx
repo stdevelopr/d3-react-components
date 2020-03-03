@@ -45,21 +45,35 @@ const mock_data = [
   }
 ];
 
-const Candlestick = () => {
+const Candlestick = (id = "myZoomableLineChart") => {
   const svgRef = useRef();
   const [data, setData] = useState(mock_data);
   const [currentZoomState, setCurrentZoomState] = useState();
 
+  //chart plot area
+  const padding = { top: 20, right: 20, bottom: 20, left: 40 };
+  const chartArea = {
+    width: 1000,
+    height: 400
+  };
+
+  const candleWidth = 20;
+
+  // style the svg element only once
   useEffect(() => {
+    console.log("1");
+    const svg = select(svgRef.current);
+    svg
+      .style("width", chartArea.width)
+      .style("height", chartArea.height)
+      .style("background", "#eee");
+  }, []);
+
+  // update the content of the svg
+  useEffect(() => {
+    console.log("2");
     const svg = select(svgRef.current);
     svg.selectAll(".candle").remove();
-
-    //chart plot area
-    const padding = { top: 20, right: 20, bottom: 20, left: 40 };
-    const chartArea = {
-      width: parseInt(svg.style("width")) - padding.left - padding.right,
-      height: parseInt(svg.style("height")) - padding.top - padding.bottom
-    };
 
     // transform functions
     const xValue = d => new Date(d.tm);
@@ -77,7 +91,7 @@ const Candlestick = () => {
     //scale functions
     const xScale = scaleTime()
       .domain([minX, maxX])
-      .range([0, chartArea.width]);
+      .range([0, chartArea.width - padding.left - padding.right]);
 
     if (currentZoomState) {
       const newXScale = currentZoomState.rescaleX(xScale);
@@ -86,7 +100,7 @@ const Candlestick = () => {
 
     const yScale = scaleLinear()
       .domain([minY, maxY])
-      .range([chartArea.height, 0]);
+      .range([chartArea.height - padding.top - padding.bottom, 0]);
 
     // axis
     const xAxis = axisBottom(xScale).tickFormat(timeFormat("%d %B %y"));
@@ -94,7 +108,8 @@ const Candlestick = () => {
       .select(".x-axis")
       .attr(
         "transform",
-        `translate(${padding.left}, ${chartArea.height + padding.top})`
+        `translate(${padding.left + candleWidth / 2}, ${chartArea.height -
+          padding.bottom})`
       )
       .call(xAxis);
 
@@ -104,23 +119,14 @@ const Candlestick = () => {
       .attr("transform", `translate(${padding.left}, ${padding.top})`)
       .call(axisLeft(yScale));
 
-    // TODO make it the visible area
-    // const background = svg
-    //   .append("g")
-    //   .append("rect")
-    //   .attr("x", padding.left)
-    //   .attr("y", padding.top)
-    //   .attr("height", chartArea.height)
-    //   .attr("width", chartArea.width)
-    //   .style("fill", "gray");
-
     const plot = svg
       .select(".content")
-      .attr("transform", `translate(${padding.left}, ${padding.top})`)
+      .attr(
+        "transform",
+        `translate(${padding.left + candleWidth / 2}, ${padding.top})`
+      )
       .selectAll(".candle")
       .data(data);
-
-    console.log(plot);
 
     const lines = plot
       .enter()
@@ -132,7 +138,6 @@ const Candlestick = () => {
       .attr("y2", d => yScale(yhValue(d)))
       .attr("stroke", "blue");
 
-    const candleWidth = 20;
     const candles = plot
       .enter()
       .append("rect")
@@ -156,7 +161,7 @@ const Candlestick = () => {
           .data([value])
           .join("text")
           .attr("class", "tooltip")
-          .text(value["c"])
+          .text(value["l"])
           .attr("transform", `translate(${padding.left}, ${padding.top})`);
       });
 
@@ -174,14 +179,23 @@ const Candlestick = () => {
   }, [currentZoomState, data]);
   return (
     <React.Fragment>
-      <svg
-        ref={svgRef}
-        style={{ width: "1400px", height: "400px", background: "#eee" }}
-      >
-        <g className="x-axis"></g>
-        <g className="y-axis"></g>
-        <g className="content"></g>
-      </svg>
+      <div>
+        <svg ref={svgRef}>
+          <defs>
+            <clipPath id="clip">
+              <rect
+                x={-padding.left / 4}
+                y={padding.top}
+                width={chartArea.width - padding.left}
+                height={chartArea.height}
+              />
+            </clipPath>
+          </defs>
+          <g className="x-axis"></g>
+          <g className="y-axis"></g>
+          <g className="content" clipPath={`url(#clip)`}></g>
+        </svg>
+      </div>
     </React.Fragment>
   );
 };
