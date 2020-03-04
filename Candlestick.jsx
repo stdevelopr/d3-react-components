@@ -9,6 +9,7 @@ import {
   axisBottom,
   axisLeft,
   selectAll,
+  mouse,
   timeFormat,
   zoom
 } from "d3";
@@ -165,6 +166,35 @@ const Candlestick = (id = "myZoomableLineChart") => {
           .attr("transform", `translate(${padding.left}, ${padding.top})`);
       });
 
+    svg.on("mousemove", function() {
+      const position = mouse(this);
+      const x_pos = position[0];
+      const y_pos = position[1];
+      const mouseDate = xScale.invert(position[0]);
+      // const elem = select(".content");
+      selectAll(".crosshair").remove();
+      select(".content")
+        .append("line")
+        .attr("class", "crosshair")
+        .attr("x1", x_pos - padding.left - candleWidth / 2)
+        .attr("x2", x_pos - padding.left - candleWidth / 2)
+        .attr("y1", -padding.top)
+        .attr("y2", chartArea.height - padding.top - padding.bottom)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.5)
+        .attr("stroke-dasharray", 5);
+      select(".content")
+        .append("line")
+        .attr("class", "crosshair")
+        .attr("x1", -padding.left)
+        .attr("x2", chartArea.width)
+        .attr("y1", y_pos - padding.top)
+        .attr("y2", y_pos - padding.top)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.5)
+        .attr("stroke-dasharray", 5);
+    });
+
     // zoom
     const zoomBehaviour = zoom()
       // 0.5 stands for 2 times zoom out, and 5 for 5 times zoom in
@@ -185,9 +215,9 @@ const Candlestick = (id = "myZoomableLineChart") => {
             <clipPath id="clip">
               <rect
                 x={-padding.left / 4}
-                y={padding.top}
+                y={0}
                 width={chartArea.width - padding.left}
-                height={chartArea.height}
+                height={chartArea.width}
               />
             </clipPath>
           </defs>
