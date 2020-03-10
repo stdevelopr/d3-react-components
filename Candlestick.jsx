@@ -72,7 +72,6 @@ const Candlestick = (id = "myZoomableLineChart") => {
 
   // update the content of the svg
   useEffect(() => {
-    console.log("2");
     const svg = select(svgRef.current);
     svg.selectAll(".candle").remove();
 
@@ -120,6 +119,22 @@ const Candlestick = (id = "myZoomableLineChart") => {
       .attr("transform", `translate(${padding.left}, ${padding.top})`)
       .call(axisLeft(yScale));
 
+    selectAll(".tick").attr("pointer-events", "none");
+
+    const yAxisBackground = select(".x-axis")
+      .append("rect")
+      .attr("cursor", "col-resize")
+      .attr("width", chartArea.width - padding.left - padding.right)
+      .attr("height", padding.bottom)
+      .attr("fill", "transparent");
+
+    // The background area of the svg where the content is plotted over
+    const plotableArea = select(".plotArea")
+      .attr("height", chartArea.height - padding.top - padding.bottom)
+      .attr("width", chartArea.width - padding.left)
+      .attr("transform", `translate(${padding.left}, ${padding.top})`)
+      .attr("fill", "gray");
+
     const plot = svg
       .select(".content")
       .attr(
@@ -166,34 +181,43 @@ const Candlestick = (id = "myZoomableLineChart") => {
           .attr("transform", `translate(${padding.left}, ${padding.top})`);
       });
 
-    svg.on("mousemove", function() {
-      const position = mouse(this);
-      const x_pos = position[0];
-      const y_pos = position[1];
-      const mouseDate = xScale.invert(position[0]);
-      // const elem = select(".content");
-      selectAll(".crosshair").remove();
-      select(".content")
-        .append("line")
-        .attr("class", "crosshair")
-        .attr("x1", x_pos - padding.left - candleWidth / 2)
-        .attr("x2", x_pos - padding.left - candleWidth / 2)
-        .attr("y1", -padding.top)
-        .attr("y2", chartArea.height - padding.top - padding.bottom)
-        .attr("stroke", "black")
-        .attr("stroke-width", 0.5)
-        .attr("stroke-dasharray", 5);
-      select(".content")
-        .append("line")
-        .attr("class", "crosshair")
-        .attr("x1", -padding.left)
-        .attr("x2", chartArea.width)
-        .attr("y1", y_pos - padding.top)
-        .attr("y2", y_pos - padding.top)
-        .attr("stroke", "black")
-        .attr("stroke-width", 0.5)
-        .attr("stroke-dasharray", 5);
-    });
+    svg
+      .on("mousemove", function() {
+        const position = mouse(this);
+        const x_pos = position[0];
+        const y_pos = position[1];
+        const mouseDate = xScale.invert(position[0]);
+        selectAll(".crosshair").remove();
+        if (
+          x_pos > padding.left &&
+          y_pos < chartArea.height - padding.bottom &&
+          y_pos > padding.top
+        ) {
+          select(".content")
+            .append("line")
+            .attr("class", "crosshair")
+            .attr("x1", x_pos - padding.left - candleWidth / 2)
+            .attr("x2", x_pos - padding.left - candleWidth / 2)
+            .attr("y1", -padding.top)
+            .attr("y2", chartArea.height - padding.top - padding.bottom)
+            .attr("stroke", "black")
+            .attr("stroke-width", 0.5)
+            .attr("stroke-dasharray", 5);
+          select(".content")
+            .append("line")
+            .attr("class", "crosshair")
+            .attr("x1", -padding.left)
+            .attr("x2", chartArea.width)
+            .attr("y1", y_pos - padding.top)
+            .attr("y2", y_pos - padding.top)
+            .attr("stroke", "black")
+            .attr("stroke-width", 0.5)
+            .attr("stroke-dasharray", 5);
+        }
+      })
+      .on("mouseleave", function(e) {
+        selectAll(".crosshair").remove();
+      });
 
     // zoom
     const zoomBehaviour = zoom()
@@ -217,12 +241,13 @@ const Candlestick = (id = "myZoomableLineChart") => {
                 x={-padding.left / 4}
                 y={0}
                 width={chartArea.width - padding.left}
-                height={chartArea.width}
+                height={chartArea.height - padding.bottom - padding.top}
               />
             </clipPath>
           </defs>
           <g className="x-axis"></g>
           <g className="y-axis"></g>
+          <rect className="plotArea"></rect>
           <g className="content" clipPath={`url(#clip)`}></g>
         </svg>
       </div>
